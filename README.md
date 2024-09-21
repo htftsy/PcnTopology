@@ -4,6 +4,7 @@ Strengthening decentralized payment network by duty channels
 Structure
 -
 `/contract` includes the demonstrative smart contract in *Solidity*.
+
 `/eval` includes the following program files for simulations.
 * `lps.h` builds the LPS graph according to $(p,q)$ as specified in the paper.
 * `withGraphs.h` builds the random graphs as specified in the paper.
