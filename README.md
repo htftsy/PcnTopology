@@ -11,7 +11,7 @@ Structure
 * `simu.cpp` evaluates our concerned metrics when inputted $(p,q,\gamma)$ as specified.
 * `fees.cpp` simulates user revenues when inputted $(p,q,\gamma)$ as specified.
 * `dataGen.cpp` generates batched datas by triggering `simu.cpp` for the following $(p,q)$ pairs, each for $6$ times:
-<p style="text-align:center;">(5, 23) (7, 23) (11, 23) (17, 23) (19, 23) (5, 47) (11, 47) (13, 47) (19, 47) (23, 47).</p>
+<p align="center">(5, 23) (7, 23) (11, 23) (17, 23) (19, 23) (5, 47) (11, 47) (13, 47) (19, 47) (23, 47).</p>
 
 How to build
 -
