@@ -1,4 +1,4 @@
-Strengthening decentralized payment network by duty channels
+Strengthening Multi-hop Channels via Decentralized Duty Distribution
 ==
 
 Structure
