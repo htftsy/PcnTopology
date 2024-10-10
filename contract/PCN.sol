@@ -42,8 +42,8 @@ contract PCN {
     mapping(uint32 => uint32) public iterNumToIndex;
     mapping(uint32 => mapping(uint32 => uint32)) public adjacentIndex;
     mapping(uint32 => mapping(uint32 => uint256)) public capacity;
-    mapping(uint32 => mapping(uint32 => uint256)) public heightForWithdal;
-    mapping(uint32 => mapping(uint32 => chState)) public stateForWithdal;
+    mapping(uint32 => mapping(uint32 => uint256)) public heightForWithdl;
+    mapping(uint32 => mapping(uint32 => chState)) public stateForWithdl;
 
     function inverseinFq(uint32 v) 
         public view returns (uint32) 
@@ -400,7 +400,7 @@ contract PCN {
             );
     }
 
-    function withdalIssue(uint32 u, uint32 v, chState memory state_p, chState memory state) 
+    function withdlIssue(uint32 u, uint32 v, chState memory state_p, chState memory state) 
         public 
     {
         require(addr[u] == msg.sender);
@@ -409,17 +409,17 @@ contract PCN {
         require(checkChStateValidity(state_p));
         require(checkChStateValidity(state));
         require(verifyStateTransition(state_p, state));
-        require(heightForWithdal[u][v] == 0);
+        require(heightForWithdl[u][v] == 0);
 
-        heightForWithdal[u][v] = heightForWithdal[v][u] = block.number + 30;
-        stateForWithdal[u][v] = stateForWithdal[v][u] = state;
+        heightForWithdl[u][v] = heightForWithdl[v][u] = block.number + 30;
+        stateForWithdl[u][v] = stateForWithdl[v][u] = state;
     }
 
-    function withdalComplete(uint32 u, uint32 v)
+    function withdlComplete(uint32 u, uint32 v)
         public 
     {
-        require(heightForWithdal[u][v] > 0);
-        require(heightForWithdal[u][v] < block.number);
+        require(heightForWithdl[u][v] > 0);
+        require(heightForWithdl[u][v] < block.number);
 
         bool found = false;
         uint32 len = uint32(adj[u].length);
@@ -440,10 +440,10 @@ contract PCN {
             }
         }
         require(found); 
-        uint256 amount = stateForWithdal[u][v].R;
-        if(stateForWithdal[u][v].frz != 0)
-            amount = uint256(int256(amount) + stateForWithdal[u][v].frz);
-        if(stateForWithdal[u][v].u == u) {
+        uint256 amount = stateForWithdl[u][v].R;
+        if(stateForWithdl[u][v].frz != 0)
+            amount = uint256(int256(amount) + stateForWithdl[u][v].frz);
+        if(stateForWithdl[u][v].u == u) {
             addr[u].transfer(amount);
             addr[v].transfer(2 * amountPerCh - amount);
         }
@@ -464,18 +464,18 @@ contract PCN {
         require(witness.sigu[0] > 0 && witness.sigv[0] > 0);
         require(isValidSignature(addr[witness.u], hashChStateToSign(witness), witness.sigu));
         require(isValidSignature(addr[witness.v], hashChStateToSign(witness), witness.sigv));
-        chState memory os = stateForWithdal[u][v];
+        chState memory os = stateForWithdl[u][v];
         if(os.v != v)
             os = symmetricChState(os);
         require(os.u == u && os.v == v);
         if(witness.k == os.k) {
             if(witness.frz != 0 && os.frz == 0)
                 return;
-            stateForWithdal[u][v] = stateForWithdal[v][u] = witness;
+            stateForWithdl[u][v] = stateForWithdl[v][u] = witness;
         }
         else if (witness.k == os.k - 1) {
             if(witness.frz == 0 && os.sigv[0] == 0)
-                stateForWithdal[u][v] = stateForWithdal[v][u] = witness;
+                stateForWithdl[u][v] = stateForWithdl[v][u] = witness;
         }
         else 
             require(false); // should not reach here
@@ -495,13 +495,13 @@ contract PCN {
             require(isValidSignature(addr[s.u], hashChStateToSign(s), s.sigu));
         else 
             require(isValidSignature(addr[s.v], hashChStateToSign(s), s.sigv));
-        chState memory os = stateForWithdal[u][v];
+        chState memory os = stateForWithdl[u][v];
         if(os.v != v)
             os = symmetricChState(os);
         require(os.u == u && os.v == v);
         require(s.k > os.k);
         require(verifyStateTransition(ps, s));
-        stateForWithdal[u][v] = stateForWithdal[v][u] = s;
+        stateForWithdl[u][v] = stateForWithdl[v][u] = s;
     }
 
     function isValidSignature(address senderAddr, uint256 amount, bytes memory signature)
