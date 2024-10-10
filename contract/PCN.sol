@@ -141,6 +141,8 @@ contract PCN {
                             ct ++;
                         }
                     }
+        for(uint32 i = 0; i < N; i++)
+            matriceToIndex[serializeMatriceToInt(PGLMembers[i])] = i;
     }
 
     function genSMembers() public {
@@ -184,44 +186,18 @@ contract PCN {
                     }
     }
 
-    function determineIterOrder() public {
-        iterNumToIndex[0] = 0;
-        uint32 front = 0;
-        uint32 rear = 0;
-        uint32[] memory qu;
-        qu = new uint32[] (N + 1);
-        qu[0] = 0;
-        bool[] memory vis;
-        vis = new bool[] (N + 1);
-        vis[0] = true;
-        for(uint32 i = 1; i < N; i++)
-            vis[i] = false;
-        uint32 target;
-        for( ; front <= rear; front ++) {
-            uint32 f = qu[front];
-            for(uint32 j = 0; j <= P; j++) {
-                target = adjacentIndex[f][j];
-                if(! vis[target]) {
-                    qu[++ rear] = target;
-                    vis[target] = true;
-                    iterNumToIndex[rear] = target;
-                }
-            }
-        }
-    }
+    uint32 public front;
+    uint32 public rear;
+    uint32[] public qu;
+    bool[] public vis;
 
-    function setupLPS() public {
-        matrice memory t;
+    function setupLPS(uint32 i) public {
 
-        for(uint32 i = 0; i < N; i++)
-            matriceToIndex[serializeMatriceToInt(PGLMembers[i])] = i;
-
-        for(uint32 i = 0; i < N; i++) {
-            for(uint32 j = 0; j <= uint32(P); j++) {
-                t = matriceMul(PGLMembers[i], SMembers[j]);
-                uint32 k = matriceToIndex[serializeMatriceToInt(t)];
-                adjacentIndex[i][j] = k;
-            }
+        for(uint32 j = 0; j <= uint32(P); j++) {
+            matrice memory t;
+            t = matriceMul(PGLMembers[i], SMembers[j]);
+            uint32 k = matriceToIndex[serializeMatriceToInt(t)];
+            adjacentIndex[i][j] = k;
         }
     }
 
@@ -250,7 +226,18 @@ contract PCN {
 
         P = _P;
         Q = _Q;
-        // To setup, please execute genPGLMembers(), genSMembers(), setupLPS(), and then determineIterOrder()
+
+        iterNumToIndex[0] = 0;
+        front = 0;
+        rear = 0;
+        qu = new uint32[] (N + 1);
+        qu[0] = 0;
+        vis = new bool[] (N + 1);
+        vis[0] = true;
+        for(uint32 i = 1; i < N; i++)
+            vis[i] = false;
+
+        // To setup, please execute genPGLMembers() and genSMembers()
     }
 
     function corrdinateToIndex (matrice memory coor) 
@@ -275,6 +262,19 @@ contract PCN {
         returns (uint32, uint32[] memory)
     {
         require(msg.value >= amountPerCh * uint256(chPerIndex));   // deposits for both duty Chs and typical Chs
+        require(front < N);
+        setupLPS(qu[front]);
+        uint32 target;
+        uint32 f = qu[front];
+        for(uint32 j = 0; j <= P; j++) {
+            target = adjacentIndex[f][j];
+            if(! vis[target]) {
+                qu[++ rear] = target;
+                vis[target] = true;
+                iterNumToIndex[rear] = target;
+            }
+        }
+        front ++;
 
         uint32 index = iterNumToIndex[iter];
         iter ++;
