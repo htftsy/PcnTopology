@@ -210,13 +210,7 @@ contract PCN {
         }
     }
 
-    function setupLPS(uint32 _P, uint32 _Q) public {
-        P = _P;
-        Q = _Q;
-        
-        genPGLMembers();
-        genSMembers();
-
+    function setupLPS() public {
         matrice memory t;
 
         for(uint32 i = 0; i < N; i++)
@@ -229,8 +223,6 @@ contract PCN {
                 adjacentIndex[i][j] = k;
             }
         }
-
-        determineIterOrder();
     }
 
     constructor (
@@ -256,7 +248,9 @@ contract PCN {
 
         remainedCustimizedChs = new uint32[](N);
 
-        setupLPS(_P, _Q);
+        P = _P;
+        Q = _Q;
+        // To setup, please execute genPGLMembers(), genSMembers(), setupLPS(), and then determineIterOrder()
     }
 
     function corrdinateToIndex (matrice memory coor) 
