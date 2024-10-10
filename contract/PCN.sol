@@ -12,11 +12,11 @@ contract PCN {
     address payable[] public addr;
 
     uint32 public iter;
-    uint32 public channelPerIndex;
-    uint32 public custimizedChannelPerIndex;
-    uint32 public dutyChannelPerIndex;
-    uint256 public amountPerChannel;
-    uint32[] public remainedCustimizedChannels;
+    uint32 public chPerIndex;
+    uint32 public custimizedchPerIndex;
+    uint32 public dutychPerIndex;
+    uint256 public amountPerCh;
+    uint32[] public remainedCustimizedChs;
 
     struct matrice {
         uint32 a;
@@ -25,12 +25,25 @@ contract PCN {
         uint32 d;
     }
 
+    struct chState {
+        uint32 u;
+        uint32 v;
+        uint32 k;
+        uint256 R;
+        int256 frz;
+        uint256 I;
+        bytes sigu;
+        bytes sigv;
+    }
+
     matrice[] public PGLMembers;
     matrice[] public SMembers;
     mapping(uint32 => uint32) public matriceToIndex; 
     mapping(uint32 => uint32) public iterNumToIndex;
     mapping(uint32 => mapping(uint32 => uint32)) public adjacentIndex;
     mapping(uint32 => mapping(uint32 => uint256)) public capacity;
+    mapping(uint32 => mapping(uint32 => uint256)) public heightForWithdal;
+    mapping(uint32 => mapping(uint32 => chState)) public stateForWithdal;
 
     function inverseinFq(uint32 v) 
         public view returns (uint32) 
@@ -223,12 +236,12 @@ contract PCN {
     constructor (
         uint32 _P, 
         uint32 _Q, 
-        uint32 custimized_channel_per_index, // this is (1 - gamma) * m in the paper
-        uint256 amount_per_channel
+        uint32 custimized_Ch_per_index, // this is (1 - gamma) * m in the paper
+        uint256 amount_per_Ch
     )  
     {
-        uint32 channel_per_index = _P + 1;
-        require(custimized_channel_per_index <= channel_per_index);
+        uint32 Ch_per_index = _P + 1;
+        require(custimized_Ch_per_index <= Ch_per_index);
 
         N = (_Q ** 3) - _Q;    // `**' means power for Solidity
 
@@ -236,12 +249,12 @@ contract PCN {
         adj = new uint32[][](N);  
         addr = new address payable[](N);
 
-        amountPerChannel = amount_per_channel;
-        channelPerIndex = channel_per_index;
-        custimizedChannelPerIndex = custimized_channel_per_index;
-        dutyChannelPerIndex = channelPerIndex - custimizedChannelPerIndex;
+        amountPerCh = amount_per_Ch;
+        chPerIndex = Ch_per_index;
+        custimizedchPerIndex = custimized_Ch_per_index;
+        dutychPerIndex = chPerIndex - custimizedchPerIndex;
 
-        remainedCustimizedChannels = new uint32[](N);
+        remainedCustimizedChs = new uint32[](N);
 
         setupLPS(_P, _Q);
     }
@@ -267,7 +280,7 @@ contract PCN {
         payable 
         returns (uint32, uint32[] memory)
     {
-        require(msg.value >= amountPerChannel * uint256(channelPerIndex));   // deposits for both duty channels and typical channels
+        require(msg.value >= amountPerCh * uint256(chPerIndex));   // deposits for both duty Chs and typical Chs
 
         uint32 index = iterNumToIndex[iter];
         iter ++;
@@ -275,28 +288,28 @@ contract PCN {
 
         addr[index] = payable(msg.sender);
 
-        adj[index] = new uint32[](dutyChannelPerIndex);
+        adj[index] = new uint32[](dutychPerIndex);
 
-        for(uint32 k = 0; k < dutyChannelPerIndex; k++)
+        for(uint32 k = 0; k < dutychPerIndex; k++)
                 adj[index][k] = adjacentIndex[index][k];
 
-        for(uint32 i = 0; i < dutyChannelPerIndex; i++)
-            capacity[index][uint32(adj[index][uint32(i)])] = amountPerChannel;
+        for(uint32 i = 0; i < dutychPerIndex; i++)
+            capacity[index][uint32(adj[index][uint32(i)])] = amountPerCh;
 
-        remainedCustimizedChannels[index] = custimizedChannelPerIndex;
+        remainedCustimizedChs[index] = custimizedchPerIndex;
 
         return (index, adj[index]);
     }
 
-    function addCustimizedChannel (uint32 index, uint32 indexTo, bytes memory signature) 
+    function addCustimizedCh (uint32 index, uint32 indexTo, bytes memory signature) 
         public 
     {
         require(addr[index] == msg.sender);
-        require(remainedCustimizedChannels[index] > 0);
+        require(remainedCustimizedChs[index] > 0);
         require(isValidSignature(addr[indexTo], uint256(index), signature));
         adj[index].push(indexTo);
-        capacity[index][indexTo] = amountPerChannel;
-        remainedCustimizedChannels[index] --;
+        capacity[index][indexTo] = amountPerCh;
+        remainedCustimizedChs[index] --;
     }
 
     function queryIndexAddress (uint32 index) 
@@ -325,22 +338,6 @@ contract PCN {
         return capacity[indexSender][indexReceiver];
     }
 
-    function queryPrescribedInwardAdjacentIndices (uint32 index) 
-        public 
-        view
-        returns (uint32[] memory res) 
-    {
-        res = new uint32[](dutyChannelPerIndex);
-        uint32 count = 0;
-
-        for(uint32 k = 0; k < dutyChannelPerIndex; k++) {
-            res[count] = adjacentIndex[index][k];
-            count ++;
-        }
-
-        return res;
-    }
-
     function topUp (uint32 _indexSender, uint32 _indexReceiver, uint256 value) 
         public 
         payable 
@@ -352,27 +349,165 @@ contract PCN {
         capacity[indexSender][indexReceiver] += value;
     }
 
-    function liquidate (uint32 _indexSender, uint32 _indexReceiver, address senderAddr, uint256 amount, bytes memory signature) 
+
+    function symmetricChState(chState memory s) 
+        internal 
+        view
+        returns (chState memory t)
+    {
+        t.u = s.v;
+        t.v = s.u;
+        t.k = s.k;
+        t.R = 2 * amountPerCh - s.R;
+        t.frz = - s.frz;
+        t.I = s.I;
+        t.sigu = s.sigv;
+        t.sigv = t.sigu;
+    }
+
+    function hashChStateToSign(chState memory s)  
+    // This function should evaluate to the same value for s and symmetricChState(s)
+        internal 
+        view 
+        returns (uint256)
+    {
+        if(s.u > s.v)
+            s = symmetricChState(s);
+        return uint256(keccak256(abi.encode(s.u, s.v, s.k, s.R, s.frz, s.I))); 
+    }
+
+    function checkChStateValidity(chState memory s) 
+        internal 
+        view 
+        returns (bool)
+    {
+        return capacity[s.u][s.v] > 0 && s.frz + int256(s.R) == int256(amountPerCh);
+    }
+
+    function verifyStateTransition(chState memory s, chState memory t) 
+        internal 
+        view 
+        returns (bool)
+    {
+        if(s.u > s.v)
+            s = symmetricChState(s);
+        if(t.u > t.v)
+            t = symmetricChState(t);
+        if(s.u != t.u || s.v != t.v || t.k != s.k + 1 || s.frz > 0 && t.frz > 0)
+            return false;
+        if(t.sigu[0] > 0 && t.sigv[0] > 0) 
+            return isValidSignature(addr[t.u], hashChStateToSign(t), t.sigu) 
+                && isValidSignature(addr[t.v], hashChStateToSign(t), t.sigv);
+        // Now it is unfreezing
+        return s.R == t.R && s.frz != 0 && t.frz == 0 && uint256(keccak256(abi.encode(t.I))) == s.I
+            && ( 
+                (s.frz > 0 && isValidSignature(addr[t.v], hashChStateToSign(t), t.sigv)) 
+             || (s.frz < 0 && isValidSignature(addr[t.u], hashChStateToSign(t), t.sigu))
+            );
+    }
+
+    function withdalIssue(uint32 u, uint32 v, chState memory state_p, chState memory state) 
         public 
     {
-        uint32 indexSender = _indexSender;
-        uint32 indexReceiver = _indexReceiver;
-        require(amount <= capacity[indexSender][indexReceiver]);
-        require(addr[indexSender] == senderAddr);
-        require(addr[indexReceiver] == msg.sender);
-        require(isValidSignature(senderAddr, amount, signature));
-        uint32 len = uint32(adj[indexSender].length);
+        require(addr[u] == msg.sender);
+        require(state.u == u && state.v == v);
+        require(capacity[v][u] > 0);
+        require(checkChStateValidity(state_p));
+        require(checkChStateValidity(state));
+        require(verifyStateTransition(state_p, state));
+        require(heightForWithdal[u][v] == 0);
+
+        heightForWithdal[u][v] = heightForWithdal[v][u] = block.number + 30;
+        stateForWithdal[u][v] = stateForWithdal[v][u] = state;
+    }
+
+    function withdalComplete(uint32 u, uint32 v)
+        public 
+    {
+        require(heightForWithdal[u][v] > 0);
+        require(heightForWithdal[u][v] < block.number);
+
         bool found = false;
+        uint32 len = uint32(adj[u].length);
         for(uint i = 0; i < len; i++) {
-            if(uint32(adj[indexSender][i]) == indexReceiver) {
+            if(uint32(adj[u][i]) == v) {
                 found = true;
-                adj[indexSender][i] = adj[indexSender][len - 1];
-                adj[indexSender].pop(); // channel removed thereafter
+                adj[u][i] = adj[u][len - 1];
+                adj[u].pop(); 
             }
         }
         require(found); 
-        addr[indexReceiver].transfer(amount);
-        capacity[indexSender][indexReceiver] -= amount;
+        len = uint32(adj[v].length);
+        for(uint i = 0; i < len; i++) {
+            if(uint32(adj[v][i]) == u) {
+                found = true;
+                adj[v][i] = adj[v][len - 1];
+                adj[v].pop(); 
+            }
+        }
+        require(found); 
+        uint256 amount = stateForWithdal[u][v].R;
+        if(stateForWithdal[u][v].frz != 0)
+            amount = uint256(int256(amount) + stateForWithdal[u][v].frz);
+        if(stateForWithdal[u][v].u == u) {
+            addr[u].transfer(amount);
+            addr[v].transfer(2 * amountPerCh - amount);
+        }
+        else {
+            addr[v].transfer(amount);
+            addr[u].transfer(2 * amountPerCh - amount);
+        }
+        capacity[u][v] = capacity[v][u] = 0;
+    }
+
+    function disputeConflictRecord(uint32 u, uint32 v, chState memory witness) 
+        public 
+    {
+        if(witness.v != v) 
+            witness = symmetricChState(witness);
+        require(addr[v] == msg.sender);
+        require(witness.u == u && witness.v == v);
+        require(witness.sigu[0] > 0 && witness.sigv[0] > 0);
+        require(isValidSignature(addr[witness.u], hashChStateToSign(witness), witness.sigu));
+        require(isValidSignature(addr[witness.v], hashChStateToSign(witness), witness.sigv));
+        chState memory os = stateForWithdal[u][v];
+        if(os.v != v)
+            os = symmetricChState(os);
+        require(os.u == u && os.v == v);
+        if(witness.k == os.k) {
+            if(witness.frz != 0 && os.frz == 0)
+                return;
+            stateForWithdal[u][v] = stateForWithdal[v][u] = witness;
+        }
+        else if (witness.k == os.k - 1) {
+            if(witness.frz == 0 && os.sigv[0] == 0)
+                stateForWithdal[u][v] = stateForWithdal[v][u] = witness;
+        }
+        else 
+            require(false); // should not reach here
+    }
+
+    function disputeStateRenewal(uint32 u, uint32 v, chState memory ps, chState memory s) 
+        public 
+    {
+        if(s.v != v) 
+            s = symmetricChState(s);
+        require(addr[v] == msg.sender);
+        require(s.u == u && s.v == v);
+        require(ps.sigu[0] > 0 && ps.sigv[0] > 0);
+        require(isValidSignature(addr[ps.u], hashChStateToSign(ps), ps.sigu));
+        require(isValidSignature(addr[ps.v], hashChStateToSign(ps), ps.sigv));
+        if(s.sigu[0] > 0)
+            require(isValidSignature(addr[s.u], hashChStateToSign(s), s.sigu));
+        else 
+            require(isValidSignature(addr[s.v], hashChStateToSign(s), s.sigv));
+        chState memory os = stateForWithdal[u][v];
+        if(os.v != v)
+            os = symmetricChState(os);
+        require(os.u == u && os.v == v);
+        require(s.k > os.k);
+        require(verifyStateTransition(ps, s));
+        stateForWithdal[u][v] = stateForWithdal[v][u] = s;
     }
 
     function isValidSignature(address senderAddr, uint256 amount, bytes memory signature)
@@ -384,7 +519,6 @@ contract PCN {
         return recoverSigner(message, signature) == senderAddr;
     }
 
-    
     function splitSignature(bytes memory sig)
         internal
         pure
