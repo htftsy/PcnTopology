@@ -129,6 +129,28 @@ contract PCN {
             for(uint32 j = 0; j < Q; j++)
                 for(uint32 k = 0; k < Q; k++)
                     for(uint32 l = 0; l < Q; l++) {
+                        if(i == 0)
+                            if(j == 0)
+                                if(k == 0)
+                                    if(l == 0)
+                                        continue;
+                                    else {
+                                        if(l != 1)
+                                            continue;
+                                    }
+                                else {
+                                    if(k != 1)
+                                        continue;
+                                }
+                            else {
+                                if(j != 1)
+                                    continue;
+                            }
+                        else {
+                            if(i != 1)
+                                continue;
+                        }
+
                         tmp.a = i; 
                         tmp.b = j;
                         tmp.c = k;
