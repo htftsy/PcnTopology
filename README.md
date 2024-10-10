@@ -1,4 +1,4 @@
-Strengthening Multi-hop Channels via Decentralized Duty Distribution
+Strengthening Multi-hop Channels via Strategic Mesh Connections
 ==
 
 Structure
