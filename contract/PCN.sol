@@ -13,8 +13,8 @@ contract PCN {
 
     uint32 public iter;
     uint32 public chPerIndex;
-    uint32 public custimizedchPerIndex;
-    uint32 public dutychPerIndex;
+    uint32 public openchPerIndex;
+    uint32 public preschPerIndex;
     uint256 public amountPerCh;
     uint32[] public remainedCustimizedChs;
 
@@ -226,12 +226,12 @@ contract PCN {
     constructor (
         uint32 _P, 
         uint32 _Q, 
-        uint32 custimized_Ch_per_index, // this is (1 - gamma) * m in the paper
+        uint32 open_Ch_per_index, // this is (1 - gamma) * m in the paper
         uint256 amount_per_Ch
     )  
     {
         uint32 Ch_per_index = _P + 1;
-        require(custimized_Ch_per_index <= Ch_per_index);
+        require(open_Ch_per_index <= Ch_per_index);
 
         N = (_Q ** 3) - _Q;    // `**' means power for Solidity
 
@@ -241,8 +241,8 @@ contract PCN {
 
         amountPerCh = amount_per_Ch;
         chPerIndex = Ch_per_index;
-        custimizedchPerIndex = custimized_Ch_per_index;
-        dutychPerIndex = chPerIndex - custimizedchPerIndex;
+        openchPerIndex = open_Ch_per_index;
+        preschPerIndex = chPerIndex - openchPerIndex;
 
         remainedCustimizedChs = new uint32[](N);
 
@@ -283,7 +283,7 @@ contract PCN {
         payable 
         returns (uint32, uint32[] memory)
     {
-        require(msg.value >= amountPerCh * uint256(chPerIndex));   // deposits for both duty Chs and typical Chs
+        require(msg.value >= amountPerCh * uint256(chPerIndex));   // deposits for both pres Chs and typical Chs
         require(front < N);
         setupLPS(qu[front]);
         uint32 target;
@@ -304,15 +304,15 @@ contract PCN {
 
         addr[index] = payable(msg.sender);
 
-        adj[index] = new uint32[](dutychPerIndex);
+        adj[index] = new uint32[](preschPerIndex);
 
-        for(uint32 k = 0; k < dutychPerIndex; k++)
+        for(uint32 k = 0; k < preschPerIndex; k++)
                 adj[index][k] = adjacentIndex[index][k];
 
-        for(uint32 i = 0; i < dutychPerIndex; i++)
+        for(uint32 i = 0; i < preschPerIndex; i++)
             capacity[index][uint32(adj[index][uint32(i)])] = amountPerCh;
 
-        remainedCustimizedChs[index] = custimizedchPerIndex;
+        remainedCustimizedChs[index] = openchPerIndex;
 
         return (index, adj[index]);
     }
