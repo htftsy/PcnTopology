@@ -13,8 +13,8 @@ contract PCN {
 
     uint32 public iter;
     uint32 public chPerIndex;
-    uint32 public openchPerIndex;
-    uint32 public preschPerIndex;
+    uint32 public openChPerIndex;
+    uint32 public presChPerIndex;
     uint256 public amountPerCh;
     uint32[] public remainedOpenChs;
 
@@ -241,8 +241,8 @@ contract PCN {
 
         amountPerCh = amount_per_Ch;
         chPerIndex = Ch_per_index;
-        openchPerIndex = open_Ch_per_index;
-        preschPerIndex = chPerIndex - openchPerIndex;
+        openChPerIndex = open_Ch_per_index;
+        presChPerIndex = chPerIndex - openChPerIndex;
 
         remainedOpenChs = new uint32[](N);
 
@@ -304,15 +304,15 @@ contract PCN {
 
         addr[index] = payable(msg.sender);
 
-        adj[index] = new uint32[](preschPerIndex);
+        adj[index] = new uint32[](presChPerIndex);
 
-        for(uint32 k = 0; k < preschPerIndex; k++)
+        for(uint32 k = 0; k < presChPerIndex; k++)
                 adj[index][k] = adjacentIndex[index][k];
 
-        for(uint32 i = 0; i < preschPerIndex; i++)
+        for(uint32 i = 0; i < presChPerIndex; i++)
             capacity[index][uint32(adj[index][uint32(i)])] = amountPerCh;
 
-        remainedOpenChs[index] = openchPerIndex;
+        remainedOpenChs[index] = openChPerIndex;
 
         return (index, adj[index]);
     }
