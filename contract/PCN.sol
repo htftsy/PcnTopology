@@ -16,7 +16,7 @@ contract PCN {
     uint32 public openchPerIndex;
     uint32 public preschPerIndex;
     uint256 public amountPerCh;
-    uint32[] public remainedCustimizedChs;
+    uint32[] public remainedOpenChs;
 
     struct matrice {
         uint32 a;
@@ -244,7 +244,7 @@ contract PCN {
         openchPerIndex = open_Ch_per_index;
         preschPerIndex = chPerIndex - openchPerIndex;
 
-        remainedCustimizedChs = new uint32[](N);
+        remainedOpenChs = new uint32[](N);
 
         P = _P;
         Q = _Q;
@@ -312,20 +312,20 @@ contract PCN {
         for(uint32 i = 0; i < preschPerIndex; i++)
             capacity[index][uint32(adj[index][uint32(i)])] = amountPerCh;
 
-        remainedCustimizedChs[index] = openchPerIndex;
+        remainedOpenChs[index] = openchPerIndex;
 
         return (index, adj[index]);
     }
 
-    function addCustimizedCh (uint32 index, uint32 indexTo, bytes memory signature) 
+    function addOpenCh (uint32 index, uint32 indexTo, bytes memory signature) 
         public 
     {
         require(addr[index] == msg.sender);
-        require(remainedCustimizedChs[index] > 0);
+        require(remainedOpenChs[index] > 0);
         require(isValidSignature(addr[indexTo], uint256(index), signature));
         adj[index].push(indexTo);
         capacity[index][indexTo] = amountPerCh;
-        remainedCustimizedChs[index] --;
+        remainedOpenChs[index] --;
     }
 
     function queryIndexAddress (uint32 index) 
