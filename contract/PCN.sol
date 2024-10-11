@@ -226,12 +226,12 @@ contract PCN {
     constructor (
         uint32 _P, 
         uint32 _Q, 
-        uint32 open_Ch_per_index, // this is (1 - gamma) * m in the paper
+        uint32 open_ch_per_index, // this is (1 - gamma) * m in the paper
         uint256 amount_per_Ch
     )  
     {
-        uint32 Ch_per_index = _P + 1;
-        require(open_Ch_per_index <= Ch_per_index);
+        uint32 ch_per_index = _P + 1;
+        require(open_ch_per_index <= ch_per_index);
 
         N = (_Q ** 3) - _Q;    // `**' means power for Solidity
 
@@ -240,8 +240,8 @@ contract PCN {
         addr = new address payable[](N);
 
         amountPerCh = amount_per_Ch;
-        chPerIndex = Ch_per_index;
-        openChPerIndex = open_Ch_per_index;
+        chPerIndex = ch_per_index;
+        openChPerIndex = open_ch_per_index;
         presChPerIndex = chPerIndex - openChPerIndex;
 
         remainedOpenChs = new uint32[](N);
