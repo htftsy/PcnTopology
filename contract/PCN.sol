@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
 
-/* For research purpose only */
 pragma solidity =0.8.27;
 
 contract PCN { 
@@ -150,7 +149,6 @@ contract PCN {
                             if(i != 1)
                                 continue;
                         }
-
                         tmp.a = i; 
                         tmp.b = j;
                         tmp.c = k;
@@ -214,7 +212,6 @@ contract PCN {
     bool[] public vis;
 
     function setupLPS(uint32 i) public {
-
         for(uint32 j = 0; j <= uint32(P); j++) {
             matrice memory t;
             t = matriceMul(PGLMembers[i], SMembers[j]);
@@ -243,7 +240,6 @@ contract PCN {
         chPerIndex = ch_per_index;
         openChPerIndex = open_ch_per_index;
         presChPerIndex = chPerIndex - openChPerIndex;
-
         remainedOpenChs = new uint32[](N);
 
         P = _P;
@@ -303,7 +299,6 @@ contract PCN {
         require(corrdinateToIndex(indexToCoordinate(index)) == index);
 
         addr[index] = payable(msg.sender);
-
         adj[index] = new uint32[](presChPerIndex);
 
         for(uint32 k = 0; k < presChPerIndex; k++)
@@ -322,10 +317,14 @@ contract PCN {
     {
         require(addr[index] == msg.sender);
         require(remainedOpenChs[index] > 0);
+        require(remainedOpenChs[indexTo] > 0);
         require(isValidSignature(addr[indexTo], uint256(index), signature));
         adj[index].push(indexTo);
         capacity[index][indexTo] = amountPerCh;
         remainedOpenChs[index] --;
+        adj[indexTo].push(index);
+        capacity[indexTo][index] = amountPerCh;
+        remainedOpenChs[indexTo] --;
     }
 
     function queryIndexAddress (uint32 index) 
@@ -364,7 +363,6 @@ contract PCN {
         require(value <= msg.value);
         capacity[indexSender][indexReceiver] += value;
     }
-
 
     function symmetricChState(chState memory s) 
         internal 
@@ -467,10 +465,12 @@ contract PCN {
             amount = uint256(int256(amount) + stateForWithdl[u][v].frz);
         if(stateForWithdl[u][v].u == u) {
             addr[u].transfer(amount);
+            require(2 * amountPerCh > amount);
             addr[v].transfer(2 * amountPerCh - amount);
         }
         else {
             addr[v].transfer(amount);
+            require(2 * amountPerCh > amount);
             addr[u].transfer(2 * amountPerCh - amount);
         }
         capacity[u][v] = capacity[v][u] = 0;
