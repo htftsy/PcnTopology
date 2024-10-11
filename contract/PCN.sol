@@ -227,7 +227,7 @@ contract PCN {
         uint32 _P, 
         uint32 _Q, 
         uint32 open_ch_per_index, // this is (1 - gamma) * m in the paper
-        uint256 amount_per_Ch
+        uint256 amount_per_ch
     )  
     {
         uint32 ch_per_index = _P + 1;
@@ -239,7 +239,7 @@ contract PCN {
         adj = new uint32[][](N);  
         addr = new address payable[](N);
 
-        amountPerCh = amount_per_Ch;
+        amountPerCh = amount_per_ch;
         chPerIndex = ch_per_index;
         openChPerIndex = open_ch_per_index;
         presChPerIndex = chPerIndex - openChPerIndex;
