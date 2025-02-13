@@ -190,7 +190,7 @@ struct LPS {
 		assert(testPrime(p) && testPrime(q));
 		assert(p != q && p > 2 && q > 2);
 		// To avoid sudden fluctuations of the charts and help to 
-		// take a grasp of the tendencies as the graph size grows, 
+		// get a grasp on the tendencies as the graph size grows, 
 		// we only work on PGL rather than PSL.
 		assert(! isQuadraticResidue(p, q));
 		// even q = 97 suffices to model a graph of size roughly 10^6

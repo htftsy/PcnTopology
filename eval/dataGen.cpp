@@ -45,7 +45,7 @@ int main() {
 		double slice = 1 / (double) m;
 		double epsilon = slice / 2.0;	// to prevent truncations into a smaller integer
 		
-		for(int j = 0; j <= m; j += 2) // only consider even numbers of customizable edges
+		for(int j = 0; j <= m; j += 2) // only consider even numbers of open-choice edges
 			experiments.push_back(paras(i->first, i->second, slice * j + epsilon, slice * j));
 	}
 
