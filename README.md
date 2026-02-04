@@ -3,7 +3,7 @@ Strengthening Multi-hop Channels via Strategic Mesh Connections
 
 Artifact DOI
 -
-
+https://doi.org/10.1007/978-3-032-07024-1_2
 
 Structure
 -
